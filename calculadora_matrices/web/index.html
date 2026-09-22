@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Matrices</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #090d16;
+            --card-bg: rgba(18, 24, 38, 0.85);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --primary-glow: rgba(99, 102, 241, 0.25);
+            --accent: #10b981;
+            --accent-glow: rgba(16, 185, 129, 0.25);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.15);
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --input-bg: #0f172a;
+            --input-border: rgba(255, 255, 255, 0.12);
+            --radius: 16px;
+            --radius-sm: 10px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(30, 41, 59, 0.3) 0px, transparent 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 32px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1120px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        header h1 {
+            font-size: 2.3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 30%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-size: 0.95rem;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 880px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            transition: border-color 0.2s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.16);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title span.badge {
+            background: var(--primary-glow);
+            color: #a5b4fc;
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        /* Controls */
+        .form-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .form-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"], input[type="number"], select, textarea {
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            padding: 10px 14px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        /* Mode Switcher */
+        .tab-switcher {
+            display: flex;
+            background: #0b1120;
+            padding: 4px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--card-border);
+            gap: 4px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 7px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 8px var(--primary-glow);
+        }
+
+        /* Interactive Grid for Cells */
+        .matrix-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+        }
+
+        .dimension-selectors {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .stepper-btn {
+            background: #1e293b;
+            border: 1px solid var(--card-border);
+            color: var(--text);
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.15s;
+        }
+
+        .stepper-btn:hover {
+            background: #334155;
+        }
+
+        .matrix-grid-bracket {
+            position: relative;
+            padding: 10px 14px;
+            display: inline-block;
+        }
+
+        .matrix-grid-bracket::before, .matrix-grid-bracket::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            border: 2px solid #6366f1;
+        }
+
+        .matrix-grid-bracket::before {
+            left: 0;
+            border-right: none;
+            border-radius: 6px 0 0 6px;
+        }
+
+        .matrix-grid-bracket::after {
+            right: 0;
+            border-left: none;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .matrix-grid {
+            display: grid;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .matrix-cell {
+            width: 58px;
+            height: 44px;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 1rem;
+            background: #090e1a;
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            color: #38bdf8;
+            outline: none;
+            transition: all 0.15s;
+        }
+
+        .matrix-cell:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+            background: #0e172a;
+            color: #fff;
+        }
+
+        /* Quick Text Input */
+        .quick-text-box {
+            width: 100%;
+            height: 120px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            resize: none;
+        }
+
+        .helper-tip {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* Action Buttons */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 12px 20px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #1e293b;
+            color: var(--text);
+            box-shadow: none;
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-secondary:hover {
+            background: #334155;
+        }
+
+        .btn-accent {
+            background: var(--accent);
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        .btn-accent:hover {
+            background: #059669;
+        }
+
+        /* Matrix Card in List */
+        .matrix-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 380px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .matrix-item {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+
+        .matrix-item:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            background: rgba(15, 23, 42, 0.9);
+        }
+
+        .matrix-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .matrix-badge-id {
+            background: #312e81;
+            color: #c7d2fe;
+            font-weight: 700;
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .matrix-name {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .matrix-size {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Render Mini Matrix */
+        .mini-matrix {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 3px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #a5b4fc;
+            padding: 4px 8px;
+            border-left: 2px solid var(--primary);
+            border-right: 2px solid var(--primary);
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        .mini-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        /* Calculation Section */
+        .calc-panel {
+            grid-column: 1 / -1;
+            background: linear-gradient(145deg, rgba(30, 27, 75, 0.4), rgba(15, 23, 42, 0.7));
+        }
+
+        .op-selector-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            background: #0b1120;
+            padding: 6px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--card-border);
+        }
+
+        .op-btn {
+            flex: 1;
+            min-width: 120px;
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .op-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 10px var(--primary-glow);
+        }
+
+        .calc-controls {
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .result-box {
+            background: #090e1a;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: var(--radius-sm);
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 140px;
+        }
+
+        .result-display {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .op-sign {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #a5b4fc;
+        }
+
+        .scalar-result {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.1);
+            padding: 8px 24px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .empty-placeholder {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 20px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast-success {
+            background: #064e3b;
+            color: #6ee7b7;
+            border: 1px solid #059669;
+        }
+
+        .toast-error {
+            background: #450a0a;
+            color: #fca5a5;
+            border: 1px solid #b91c1c;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Calculadora de Matrices</h1>
+            <p>Suma, multiplicación, transpuesta y determinante en tiempo real</p>
+        </header>
+
+        <div class="grid-layout">
+            <!-- Left Card: Creator -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>📐</span>
+                        <span>Crear Matriz</span>
+                    </div>
+                    <div class="tab-switcher">
+                        <button class="tab-btn active" id="tabGrid" onclick="setMode('grid')">Cuadrícula</button>
+                        <button class="tab-btn" id="tabText" onclick="setMode('text')">Texto Libre</button>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group" style="max-width: 140px;">
+                        <label for="matrixName">Nombre</label>
+                        <input type="text" id="matrixName" value="A" maxlength="10" placeholder="Ej: A">
+                    </div>
+                    
+                    <div id="gridDimensions" class="form-group">
+                        <label>Dimensiones (Filas × Cols)</label>
+                        <div class="dimension-selectors">
+                            <span>Filas:</span>
+                            <button type="button" class="stepper-btn" onclick="changeDim('rows', -1)">-</button>
+                            <span id="rowsCount" style="color: #fff; width: 14px; text-align: center;">2</span>
+                            <button type="button" class="stepper-btn" onclick="changeDim('rows', 1)">+</button>
+                            
+                            <span style="margin-left: 8px;">Cols:</span>
+                            <button type="button" class="stepper-btn" onclick="changeDim('cols', -1)">-</button>
+                            <span id="colsCount" style="color: #fff; width: 14px; text-align: center;">2</span>
+                            <button type="button" class="stepper-btn" onclick="changeDim('cols', 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mode 1: Interactive Cell Grid -->
+                <div id="gridEditorView" class="matrix-editor">
+                    <div class="matrix-grid-bracket">
+                        <div id="matrixGrid" class="matrix-grid">
+                            <!-- Cells dynamically rendered -->
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 4px;">
+                        <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="fillRandom()">🎲 Aleatorios</button>
+                        <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="clearGrid()">🧹 Limpiar</button>
+                    </div>
+                </div>
+
+                <!-- Mode 2: Quick Text Input -->
+                <div id="textEditorView" style="display: none;" class="form-group">
+                    <label for="quickTextInput">Escribe números separados por espacios y saltos de línea:</label>
+                    <textarea id="quickTextInput" class="quick-text-box" placeholder="1 2 3&#10;4 5 6"></textarea>
+                    <p class="helper-tip">💡 Cada fila en una línea nueva. Solo números y espacios (ej: <code>1 2</code> en la primera fila, <code>3 4</code> en la segunda).</p>
+                </div>
+
+                <button type="button" class="btn" onclick="guardarMatriz()">
+                    <span>💾 Guardar Matriz en Backend</span>
+                </button>
+            </div>
+
+            <!-- Right Card: Saved Matrices List -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>📚</span>
+                        <span>Matrices Guardadas</span>
+                        <span id="matricesCount" class="badge">0</span>
+                    </div>
+                    <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="cargarMatrices()">
+                        🔄 Refrescar
+                    </button>
+                </div>
+
+                <div id="matrixList" class="matrix-list">
+                    <p class="empty-placeholder" style="text-align: center; margin-top: 40px;">Cargando matrices...</p>
+                </div>
+            </div>
+
+            <!-- Bottom Full Card: Operations -->
+            <div class="card calc-panel">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span>⚡</span>
+                        <span>Operaciones Matriciales</span>
+                    </div>
+                </div>
+
+                <!-- Selector de Operación -->
+                <div class="form-group">
+                    <label>Selecciona la Operación</label>
+                    <div class="op-selector-group">
+                        <button type="button" class="op-btn active" id="opSumar" onclick="setOperation('sumar')">➕ Suma (A + B)</button>
+                        <button type="button" class="op-btn" id="opMultiplicar" onclick="setOperation('multiplicar')">✖️ Multiplicación (A × B)</button>
+                        <button type="button" class="op-btn" id="opTransponer" onclick="setOperation('transponer')">🔄 Transpuesta (Aᵀ)</button>
+                        <button type="button" class="op-btn" id="opDeterminante" onclick="setOperation('determinante')">🎯 Determinante |A|</button>
+                    </div>
+                </div>
+
+                <div class="calc-controls">
+                    <div class="form-group" style="flex: 2; min-width: 200px;">
+                        <label for="selectM1" id="labelM1">Matriz 1 (A)</label>
+                        <select id="selectM1">
+                            <option value="">Seleccionar matriz...</option>
+                        </select>
+                    </div>
+
+                    <div id="opSymbol" style="font-size: 1.5rem; font-weight: 800; color: #a5b4fc; padding-bottom: 10px;">+</div>
+
+                    <div class="form-group" id="containerM2" style="flex: 2; min-width: 200px;">
+                        <label for="selectM2">Matriz 2 (B)</label>
+                        <select id="selectM2">
+                            <option value="">Seleccionar matriz...</option>
+                        </select>
+                    </div>
+
+                    <button type="button" class="btn btn-accent" id="btnEjecutarOp" style="flex: 1; min-width: 180px;" onclick="ejecutarOperacion()">
+                        <span>Calcular Operación</span>
+                    </button>
+                </div>
+
+                <div class="result-box" id="resultContainer">
+                    <p class="empty-placeholder">Selecciona las matrices y presiona "Calcular Operación" para ver el resultado.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast message container -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let currentRows = 2;
+        let currentCols = 2;
+        let currentMode = 'grid'; // 'grid' | 'text'
+        let currentOp = 'sumar'; // 'sumar' | 'multiplicar' | 'transponer' | 'determinante'
+        let matricesGuardadas = [];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderGrid();
+            cargarMatrices();
+            updateOpUI();
+        });
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('tabGrid').classList.toggle('active', mode === 'grid');
+            document.getElementById('tabText').classList.toggle('active', mode === 'text');
+            document.getElementById('gridEditorView').style.display = mode === 'grid' ? 'flex' : 'none';
+            document.getElementById('gridDimensions').style.display = mode === 'grid' ? 'flex' : 'none';
+            document.getElementById('textEditorView').style.display = mode === 'text' ? 'flex' : 'none';
+
+            if (mode === 'text') {
+                const data = extraerDatosGrid();
+                document.getElementById('quickTextInput').value = data.map(r => r.join(' ')).join('\n');
+            }
+        }
+
+        function setOperation(op) {
+            currentOp = op;
+            ['sumar', 'multiplicar', 'transponer', 'determinante'].forEach(o => {
+                const btn = document.getElementById('op' + o.charAt(0).toUpperCase() + o.slice(1));
+                if (btn) btn.classList.toggle('active', o === op);
+            });
+            updateOpUI();
+        }
+
+        function updateOpUI() {
+            const containerM2 = document.getElementById('containerM2');
+            const opSymbol = document.getElementById('opSymbol');
+            const labelM1 = document.getElementById('labelM1');
+            const btnEjecutar = document.getElementById('btnEjecutarOp');
+
+            if (currentOp === 'sumar') {
+                containerM2.style.display = 'flex';
+                opSymbol.style.display = 'block';
+                opSymbol.textContent = '+';
+                labelM1.textContent = 'Matriz 1 (A)';
+                btnEjecutar.innerHTML = '<span>➕ Calcular Suma</span>';
+            } else if (currentOp === 'multiplicar') {
+                containerM2.style.display = 'flex';
+                opSymbol.style.display = 'block';
+                opSymbol.textContent = '×';
+                labelM1.textContent = 'Matriz 1 (A)';
+                btnEjecutar.innerHTML = '<span>✖️ Calcular Multiplicación</span>';
+            } else if (currentOp === 'transponer') {
+                containerM2.style.display = 'none';
+                opSymbol.style.display = 'none';
+                labelM1.textContent = 'Matriz (A)';
+                btnEjecutar.innerHTML = '<span>🔄 Obtener Transpuesta</span>';
+            } else if (currentOp === 'determinante') {
+                containerM2.style.display = 'none';
+                opSymbol.style.display = 'none';
+                labelM1.textContent = 'Matriz Cuadrada (A)';
+                btnEjecutar.innerHTML = '<span>🎯 Calcular Determinante</span>';
+            }
+        }
+
+        function changeDim(type, delta) {
+            if (type === 'rows') {
+                currentRows = Math.max(1, Math.min(6, currentRows + delta));
+                document.getElementById('rowsCount').textContent = currentRows;
+            } else {
+                currentCols = Math.max(1, Math.min(6, currentCols + delta));
+                document.getElementById('colsCount').textContent = currentCols;
+            }
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const container = document.getElementById('matrixGrid');
+            container.style.gridTemplateColumns = `repeat(${currentCols}, 1fr)`;
+            container.innerHTML = '';
+
+            for (let r = 0; r < currentRows; r++) {
+                for (let c = 0; c < currentCols; c++) {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.step = 'any';
+                    input.className = 'matrix-cell';
+                    input.dataset.row = r;
+                    input.dataset.col = c;
+                    input.placeholder = '0';
+                    input.value = '0';
+
+                    input.addEventListener('keydown', (e) => handleKeyNav(e, r, c));
+                    container.appendChild(input);
+                }
+            }
+        }
+
+        function handleKeyNav(e, r, c) {
+            let targetR = r;
+            let targetC = c;
+
+            if (e.key === 'ArrowRight' && c < currentCols - 1) targetC++;
+            else if (e.key === 'ArrowLeft' && c > 0) targetC--;
+            else if (e.key === 'ArrowDown' && r < currentRows - 1) targetR++;
+            else if (e.key === 'ArrowUp' && r > 0) targetR--;
+            else if (e.key === 'Enter') {
+                if (c < currentCols - 1) targetC++;
+                else if (r < currentRows - 1) { targetR++; targetC = 0; }
+            } else return;
+
+            const nextCell = document.querySelector(`.matrix-cell[data-row="${targetR}"][data-col="${targetC}"]`);
+            if (nextCell) {
+                e.preventDefault();
+                nextCell.focus();
+                nextCell.select();
+            }
+        }
+
+        function extraerDatosGrid() {
+            const matrix = [];
+            for (let r = 0; r < currentRows; r++) {
+                const row = [];
+                for (let c = 0; c < currentCols; c++) {
+                    const cell = document.querySelector(`.matrix-cell[data-row="${r}"][data-col="${c}"]`);
+                    const val = parseFloat(cell.value);
+                    row.push(isNaN(val) ? 0 : val);
+                }
+                matrix.push(row);
+            }
+            return matrix;
+        }
+
+        function extraerDatosTexto() {
+            const raw = document.getElementById('quickTextInput').value.trim();
+            if (!raw) throw new Error('El campo de texto no puede estar vacío');
+
+            const lineas = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            if (lineas.length === 0) throw new Error('Ingresa al menos una fila con números');
+
+            const matrix = lineas.map(linea => {
+                const nums = linea.split(/[\s,]+/).filter(n => n.length > 0).map(n => {
+                    const num = parseFloat(n);
+                    if (isNaN(num)) throw new Error(`"${n}" no es un número válido`);
+                    return num;
+                });
+                return nums;
+            });
+
+            const primerLargo = matrix[0].length;
+            if (primerLargo === 0) throw new Error('Las filas no pueden estar vacías');
+            for (let i = 1; i < matrix.length; i++) {
+                if (matrix[i].length !== primerLargo) {
+                    throw new Error(`Fila ${i + 1} tiene ${matrix[i].length} números, pero la primera tiene ${primerLargo}. Todas deben ser iguales.`);
+                }
+            }
+
+            return matrix;
+        }
+
+        function fillRandom() {
+            document.querySelectorAll('.matrix-cell').forEach(cell => {
+                cell.value = Math.floor(Math.random() * 19) - 9;
+            });
+        }
+
+        function clearGrid() {
+            document.querySelectorAll('.matrix-cell').forEach(cell => {
+                cell.value = '0';
+            });
+        }
+
+        async function guardarMatriz() {
+            const nombre = document.getElementById('matrixName').value.trim() || 'A';
+            let datos;
+
+            try {
+                if (currentMode === 'grid') {
+                    datos = extraerDatosGrid();
+                } else {
+                    datos = extraerDatosTexto();
+                }
+            } catch (err) {
+                mostrarToast(err.message, 'error');
+                return;
+            }
+
+            try {
+                const r = await fetch('/matrices', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, datos })
+                });
+
+                const res = await r.json();
+
+                if (!r.ok) {
+                    const errorDetail = res.detail ? (Array.isArray(res.detail) ? res.detail[0].msg : res.detail) : 'Error al crear matriz';
+                    mostrarToast(errorDetail, 'error');
+                    return;
+                }
+
+                mostrarToast(`¡Matriz "${res.nombre}" (ID: ${res.id}) guardada con éxito!`, 'success');
+                
+                const nextChar = String.fromCharCode(nombre.charCodeAt(0) + 1);
+                if (/^[A-Z]$/.test(nextChar)) {
+                    document.getElementById('matrixName').value = nextChar;
+                }
+
+                cargarMatrices();
+            } catch (err) {
+                mostrarToast('Error de conexión: ' + err.message, 'error');
+            }
+        }
+
+        async function cargarMatrices() {
+            const listEl = document.getElementById('matrixList');
+            const countEl = document.getElementById('matricesCount');
+            const selectM1 = document.getElementById('selectM1');
+            const selectM2 = document.getElementById('selectM2');
+
+            try {
+                const r = await fetch('/matrices');
+                if (!r.ok) throw new Error('Error al obtener matrices');
+                
+                matricesGuardadas = await r.json();
+                countEl.textContent = matricesGuardadas.length;
+
+                const prevM1 = selectM1.value;
+                const prevM2 = selectM2.value;
+
+                selectM1.innerHTML = '<option value="">Seleccionar matriz 1...</option>';
+                selectM2.innerHTML = '<option value="">Seleccionar matriz 2...</option>';
+
+                if (matricesGuardadas.length === 0) {
+                    listEl.innerHTML = '<p class="empty-placeholder" style="text-align: center; margin-top: 40px;">No hay matrices creadas aún. Crea tu primera matriz a la izquierda.</p>';
+                    return;
+                }
+
+                listEl.innerHTML = '';
+                matricesGuardadas.forEach(m => {
+                    const rows = m.datos.length;
+                    const cols = m.datos[0]?.length || 0;
+
+                    const opt1 = document.createElement('option');
+                    opt1.value = m.id;
+                    opt1.textContent = `[ID ${m.id}] ${m.nombre} (${rows}×${cols})`;
+                    selectM1.appendChild(opt1);
+
+                    const opt2 = document.createElement('option');
+                    opt2.value = m.id;
+                    opt2.textContent = `[ID ${m.id}] ${m.nombre} (${rows}×${cols})`;
+                    selectM2.appendChild(opt2);
+
+                    const item = document.createElement('div');
+                    item.className = 'matrix-item';
+                    item.innerHTML = `
+                        <div class="matrix-info">
+                            <span class="matrix-badge-id">#${m.id}</span>
+                            <div>
+                                <div class="matrix-name">${escapeHtml(m.nombre)}</div>
+                                <div class="matrix-size">${rows} × ${cols}</div>
+                            </div>
+                        </div>
+                        <div>
+                            ${renderMiniMatrixHTML(m.datos)}
+                        </div>
+                    `;
+                    listEl.appendChild(item);
+                });
+
+                selectM1.value = prevM1;
+                selectM2.value = prevM2;
+
+            } catch (err) {
+                listEl.innerHTML = `<p class="empty-placeholder" style="color: #fca5a5; text-align: center;">Error al cargar matrices: ${err.message}</p>`;
+            }
+        }
+
+        function renderMiniMatrixHTML(datos) {
+            if (!datos || datos.length === 0) return '';
+            const rowsHTML = datos.map(row => 
+                `<div class="mini-row">${row.map(val => `<span style="min-width: 22px; text-align: center;">${val}</span>`).join('')}</div>`
+            ).join('');
+            return `<div class="mini-matrix">${rowsHTML}</div>`;
+        }
+
+        async function ejecutarOperacion() {
+            const id1 = document.getElementById('selectM1').value;
+            const id2 = document.getElementById('selectM2').value;
+            const resContainer = document.getElementById('resultContainer');
+
+            if (!id1) {
+                mostrarToast('Por favor selecciona la matriz para operar', 'error');
+                return;
+            }
+
+            if ((currentOp === 'sumar' || currentOp === 'multiplicar') && !id2) {
+                mostrarToast('Por favor selecciona ambas matrices para la operación', 'error');
+                return;
+            }
+
+            const m1 = matricesGuardadas.find(m => m.id == id1);
+            const m2 = matricesGuardadas.find(m => m.id == id2);
+
+            let endpoint = '';
+            if (currentOp === 'sumar') endpoint = `/operaciones/sumar?id1=${id1}&id2=${id2}`;
+            else if (currentOp === 'multiplicar') endpoint = `/operaciones/multiplicar?id1=${id1}&id2=${id2}`;
+            else if (currentOp === 'transponer') endpoint = `/operaciones/transponer?id=${id1}`;
+            else if (currentOp === 'determinante') endpoint = `/operaciones/determinante?id=${id1}`;
+
+            try {
+                const r = await fetch(endpoint, { method: 'POST' });
+                const res = await r.json();
+
+                if (!r.ok) {
+                    const detail = res.detail || 'Error en la operación';
+                    mostrarToast(detail, 'error');
+                    resContainer.innerHTML = `<p class="empty-placeholder" style="color: #fca5a5;">❌ ${escapeHtml(detail)}</p>`;
+                    return;
+                }
+
+                mostrarToast('¡Operación realizada con éxito!', 'success');
+
+                if (currentOp === 'sumar' || currentOp === 'multiplicar') {
+                    const sign = currentOp === 'sumar' ? '+' : '×';
+                    resContainer.innerHTML = `
+                        <div class="result-display">
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">${escapeHtml(m1.nombre)} (#${m1.id})</div>
+                                ${renderMiniMatrixHTML(m1.datos)}
+                            </div>
+                            <div class="op-sign">${sign}</div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">${escapeHtml(m2.nombre)} (#${m2.id})</div>
+                                ${renderMiniMatrixHTML(m2.datos)}
+                            </div>
+                            <div class="op-sign">=</div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.8rem; color: #6ee7b7; font-weight: bold; margin-bottom: 4px;">Resultado (${res.resultado.length}×${res.resultado[0]?.length || 0})</div>
+                                ${renderMiniMatrixHTML(res.resultado)}
+                            </div>
+                        </div>
+                    `;
+                } else if (currentOp === 'transponer') {
+                    resContainer.innerHTML = `
+                        <div class="result-display">
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">${escapeHtml(m1.nombre)} (${m1.datos.length}×${m1.datos[0]?.length || 0})</div>
+                                ${renderMiniMatrixHTML(m1.datos)}
+                            </div>
+                            <div class="op-sign">ᵀ =</div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.8rem; color: #6ee7b7; font-weight: bold; margin-bottom: 4px;">Transpuesta (${res.resultado.length}×${res.resultado[0]?.length || 0})</div>
+                                ${renderMiniMatrixHTML(res.resultado)}
+                            </div>
+                        </div>
+                    `;
+                } else if (currentOp === 'determinante') {
+                    resContainer.innerHTML = `
+                        <div class="result-display">
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">|${escapeHtml(m1.nombre)}|</div>
+                                ${renderMiniMatrixHTML(m1.datos)}
+                            </div>
+                            <div class="op-sign">=</div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 0.8rem; color: #38bdf8; font-weight: bold; margin-bottom: 6px;">Determinante det(A)</div>
+                                <div class="scalar-result">${res.resultado}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+            } catch (err) {
+                mostrarToast('Error al conectar con el servidor: ' + err.message, 'error');
+            }
+        }
+
+        function mostrarToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = `toast toast-${type} show`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3500);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
