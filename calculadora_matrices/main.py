@@ -6,8 +6,9 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from models.models import MatrixCreate, DosMatrices, UnaMatriz, CadenaMatrices, Transformacion
-from repository.repository import MatrixRepository, LimiteExcedido
+from models.models import (MatrixCreate, DosMatrices, UnaMatriz, CadenaMatrices, Transformacion,
+                           Morph, FiguraCreate)
+from repository.repository import MatrixRepository, FiguraRepository, LimiteExcedido
 from services import services
 
 # Swagger/OpenAPI solo cuando se pide (ENABLE_DOCS=1): no exponer el mapa de la API por defecto
@@ -19,6 +20,7 @@ app = FastAPI(
 )
 
 repo = MatrixRepository()
+figuras = FiguraRepository()
 
 # CSP estricta para scripts; los estilos en línea (style="...") siguen permitidos.
 CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
@@ -174,4 +176,24 @@ def calc_multiplicar_cadena(p: CadenaMatrices):
     except ValueError as e:
         raise HTTPException(400, str(e))
 
-    
+
+@app.post("/calc/morph")
+def calc_morph(p: Morph):
+    """Vértices de la figura intermedia entre una dona (t=0) y una taza (t=1).
+    Devuelve resolucion² puntos; no guarda estado."""
+    vertices = services.morph(p.t, p.resolucion)
+    return {"t": p.t, "total_puntos": len(vertices), "vertices": vertices}
+
+
+@app.post("/figuras")
+def guardar_figura(payload: FiguraCreate, request: Request):
+    """Guarda una figura con nombre. Idempotente: el mismo nombre actualiza la anterior."""
+    try:
+        return figuras.guardar(request.state.sid, payload.model_dump())
+    except LimiteExcedido as e:
+        raise HTTPException(429, str(e)) from None
+
+
+@app.get("/figuras")
+def listar_figuras(request: Request):
+    return figuras.listar(request.state.sid)

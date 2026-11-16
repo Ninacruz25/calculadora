@@ -33,3 +33,30 @@ class MatrixRepository:
 
     def listar(self, dueno: str) -> list[dict]:
         return [m for i, m in self._data.items() if self._dueno[i] == dueno]
+
+
+class FiguraRepository:
+    """Figuras guardadas (nombre + parámetros del morph) por dueño. Guardar es idempotente:
+    repetir el mismo nombre actualiza la figura en vez de duplicarla."""
+
+    def __init__(self):
+        self._por_dueno: dict[str, dict[str, dict]] = {}
+        self._next_id = 1
+
+    def guardar(self, dueno: str, figura: dict) -> dict:
+        propias = self._por_dueno.setdefault(dueno, {})
+        existente = propias.get(figura["nombre"])
+        if existente is None:
+            if sum(len(f) for f in self._por_dueno.values()) >= MAX_MATRICES_TOTAL:
+                raise LimiteExcedido("servicio saturado")
+            if len(propias) >= MAX_MATRICES_POR_DUENO:
+                raise LimiteExcedido(f"máximo {MAX_MATRICES_POR_DUENO} figuras por sesión")
+            figura = {**figura, "id": self._next_id}
+            self._next_id += 1
+        else:
+            figura = {**figura, "id": existente["id"]}
+        propias[figura["nombre"]] = figura
+        return figura
+
+    def listar(self, dueno: str) -> list[dict]:
+        return list(self._por_dueno.get(dueno, {}).values())

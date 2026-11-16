@@ -3,6 +3,7 @@ import json
 import math
 import os
 import re
+import secrets
 import time
 from contextlib import asynccontextmanager
 from functools import lru_cache
@@ -166,6 +167,20 @@ async def pedir_transformacion(client: httpx.AsyncClient, parametros: dict) -> l
     return response.json()["column_major"]
 
 
+async def pedir_morph(client: httpx.AsyncClient, t: float, resolucion: int) -> list[list[float]]:
+    """La matemática del morph dona -> taza también vive en calculadora_matrices."""
+    response = await client.post("/calc/morph", json={"t": t, "resolucion": resolucion})
+    response.raise_for_status()
+    return response.json()["vertices"]
+
+
+async def pedir_guardar_figura(client: httpx.AsyncClient, sid: str, figura: dict) -> dict:
+    """Guarda la figura en la calculadora a nombre de esta conexión (cookie de sesión propia)."""
+    response = await client.post("/figuras", json=figura, headers={"Cookie": f"sid={sid}"})
+    response.raise_for_status()
+    return response.json()
+
+
 @app.get("/")
 def read_root():
     """Endpoint raíz para verificar disponibilidad del servicio."""
@@ -176,7 +191,7 @@ def read_root():
             "figuras": "/api/figuras",
             "figura": "/api/figura/{nombre}",
             "csv_model": "/api/modelo-csv",
-            "websocket": "/ws/transform",
+            "websocket": "/ws/transform (matriz, {morph}, {guardar})",
             "viewer": "/view"
         }
     }
@@ -213,6 +228,7 @@ def obtener_puntos_figura(nombre: str):
 MAX_CONEXIONES_WS = 20
 MAX_MENSAJES_POR_SEG = 200
 MAX_BYTES_MENSAJE = 1024
+MAX_MORPH_POR_SEG = 20      # cada morph calcula hasta 10.000 vértices: se limita aparte
 conexiones_ws = 0
 
 
@@ -225,6 +241,53 @@ class Parametros(BaseModel):
     ry: float = Field(0.0, ge=-1e6, le=1e6, allow_inf_nan=False)
     rz: float = Field(0.0, ge=-1e6, le=1e6, allow_inf_nan=False)
     escala: float = Field(1.0, ge=-100, le=100, allow_inf_nan=False)
+
+
+NOMBRE_RE = r"^[\w .\-]+$"
+
+
+class MorphPedido(BaseModel):
+    t: float = Field(ge=0, le=1, allow_inf_nan=False)
+    resolucion: int = Field(30, ge=4, le=100)
+
+
+class GuardarPedido(MorphPedido):
+    nombre: str = Field(min_length=1, max_length=60, pattern=NOMBRE_RE)
+
+
+async def atender_mensaje(datos: dict, client: httpx.AsyncClient, sid: str) -> dict:
+    """Decide qué pedirle a la calculadora según el mensaje del visor y arma la respuesta."""
+    if "morph" in datos:
+        pedido = MorphPedido(**datos["morph"])
+        vertices = await pedir_morph(client, pedido.t, pedido.resolucion)
+        return {"status": "ok", "morph": {"t": pedido.t, "vertices": vertices}}
+    if "guardar" in datos:
+        pedido = GuardarPedido(**datos["guardar"])
+        figura = await pedir_guardar_figura(client, sid, pedido.model_dump())
+        return {"status": "ok", "guardada": {"id": figura["id"], "nombre": figura["nombre"]}}
+    parametros = Parametros(**datos).model_dump()
+    return {"status": "ok", "matrix": await pedir_transformacion(client, parametros)}
+
+
+async def responder(
+    texto: str, client: httpx.AsyncClient, sid: str, morphs: int
+) -> tuple[dict, bool]:
+    """Procesa un mensaje del visor. Devuelve (respuesta, si_fue_un_morph_o_guardado).
+    Entrada no confiable: JSON inválido o fuera de rango responde error sin tumbar el canal."""
+    try:
+        datos = json.loads(texto)
+        if not isinstance(datos, dict):
+            raise ValueError("se esperaba un objeto JSON")
+        costoso = "morph" in datos or "guardar" in datos
+        if costoso and morphs >= MAX_MORPH_POR_SEG:
+            return {"status": "error", "detail": "demasiadas peticiones de morph"}, False
+        return await atender_mensaje(datos, client, sid), costoso
+    except (ValueError, TypeError, ValidationError):
+        return {"status": "error", "detail": "parámetros inválidos"}, False
+    except httpx.HTTPError as e:
+        # Si la calculadora no responde, avisamos al cliente sin cortar el WebSocket
+        detalle = f"calculadora no disponible: {e.__class__.__name__}"
+        return {"status": "error", "detail": detalle}, False
 
 
 @app.websocket("/ws/transform")
@@ -243,42 +306,23 @@ async def websocket_transform(websocket: WebSocket):
 
     await websocket.accept()
     conexiones_ws += 1
-    client: httpx.AsyncClient = websocket.app.state.calc
-    ventana, enviados = time.monotonic(), 0
+    sid = secrets.token_hex(16)  # las figuras guardadas pertenecen a esta conexión
+    ventana, enviados, morphs = time.monotonic(), 0, 0
     try:
         while True:
             texto = await websocket.receive_text()
 
             ahora = time.monotonic()
             if ahora - ventana >= 1:
-                ventana, enviados = ahora, 0
+                ventana, enviados, morphs = ahora, 0, 0
             enviados += 1
             if enviados > MAX_MENSAJES_POR_SEG or len(texto) > MAX_BYTES_MENSAJE:
                 await websocket.close(code=1008)
                 return
 
-            # Entrada no confiable: JSON inválido o fuera de rango no debe tumbar el canal
-            try:
-                parametros = Parametros(**json.loads(texto)).model_dump()
-            except (ValueError, TypeError, ValidationError):
-                await websocket.send_json({"status": "error", "detail": "parámetros inválidos"})
-                continue
-
-            try:
-                matrix_4x4 = await pedir_transformacion(client, parametros)
-            except httpx.HTTPError as e:
-                # Si la calculadora no responde, avisamos al cliente sin cortar el WebSocket
-                await websocket.send_json({
-                    "status": "error",
-                    "detail": f"calculadora no disponible: {e.__class__.__name__}"
-                })
-                continue
-
-            # Responder con la matriz procesada
-            await websocket.send_json({
-                "matrix": matrix_4x4,
-                "status": "ok"
-            })
+            respuesta, costoso = await responder(texto, websocket.app.state.calc, sid, morphs)
+            morphs += costoso
+            await websocket.send_json(respuesta)
     except WebSocketDisconnect:
         print("Cliente WebSocket desconectado")
     finally:
