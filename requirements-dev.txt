@@ -1,0 +1,6 @@
+# Dependencias para desarrollo y pruebas (los servicios tienen sus propios requirements.txt)
+-r modelo-3D/requirements.txt   # fastapi, uvicorn, httpx, pydantic (la calculadora usa las mismas versiones)
+
+pytest==9.2.0                   # pruebas unitarias (tests_unitarias/) y E2E
+ruff==0.17.5                    # análisis estático (config en pyproject.toml)
+pytest-playwright==0.10.0       # solo para test_e2e/; después: playwright install chromium
