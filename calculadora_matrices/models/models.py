@@ -84,3 +84,20 @@ class CadenaMatrices(BaseModel):
         for m in v:
             validar_matriz(m)
         return v
+
+
+# Morph dona -> taza
+MAX_RESOLUCION = 100    # resolucion² puntos: 100 -> 10.000 vértices, máximo por petición
+MIN_RESOLUCION = 4
+
+
+class Morph(BaseModel):
+    t: float = Field(ge=0, le=1, allow_inf_nan=False, description="0 = dona, 1 = taza")
+    resolucion: int = Field(30, ge=MIN_RESOLUCION, le=MAX_RESOLUCION,
+                            description="Puntos por lado; la malla tiene resolucion² vértices")
+
+
+class FiguraCreate(Morph):
+    # Solo letras, números, espacio, punto, guion y guion bajo: el nombre se muestra en el
+    # visor y puede llegar a un agente, así que no se admiten símbolos de marcado.
+    nombre: str = Field(min_length=1, max_length=MAX_NOMBRE, pattern=r"^[\w .\-]+$")
